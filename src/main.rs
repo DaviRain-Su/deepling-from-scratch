@@ -35,6 +35,15 @@ fn main() {
     println!("or(0.0, 1.0) - Result: {}", result);
     let result = or(0.0, 0.0);
     println!("or(0.0, 0.0) - Result: {}", result);
+
+    let result = xor(1.0, 1.0);
+    println!("xor(1.0, 1.0) - Result: {}", result);
+    let result = xor(1.0, 0.0);
+    println!("xor(1.0, 0.0) - Result: {}", result);
+    let result = xor(0.0, 1.0);
+    println!("xor(0.0, 1.0) - Result: {}", result);
+    let result = xor(0.0, 0.0);
+    println!("xor(0.0, 0.0) - Result: {}", result);
 }
 
 fn and(x1: f64, x2: f64) -> f64 {
@@ -72,4 +81,10 @@ fn or(x1: f64, x2: f64) -> f64 {
     let tmp = x.dot(&w) + b;
     //dbg!(tmp);
     if tmp <= 0.0 { 0.0 } else { 1.0 }
+}
+
+fn xor(x1: f64, x2: f64) -> f64 {
+    let s1 = nand(x1, x2);
+    let s2 = or(x1, x2);
+    and(s1, s2)
 }
