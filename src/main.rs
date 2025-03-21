@@ -50,6 +50,9 @@ fn main() {
 
     let result = sigmoid(Array1::from(vec![-1.0, 1.0, 2.0]));
     println!("sigmoid([-1.0, 1.0, 2.0]) - Result: {:?}", result);
+
+    let result = relu(Array1::from(vec![-1.0, 1.0, 2.0]));
+    println!("relu([-1.0, 1.0, 2.0]) - Result: {:?}", result);
 }
 
 fn and(x1: f64, x2: f64) -> f64 {
@@ -103,4 +106,9 @@ fn step_function(x: Array1<f64>) -> Array1<f64> {
 // sigmoid function
 fn sigmoid(x: Array1<f64>) -> Array1<f64> {
     x.mapv(|element| 1.0 / (1.0 + (-element).exp()))
+}
+
+// relu function (Rectified linear function)
+fn relu(x: Array1<f64>) -> Array1<f64> {
+    x.mapv(|element| if element > 0.0 { element } else { 0.0 })
 }
