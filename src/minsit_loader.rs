@@ -1,7 +1,7 @@
 //! MNIST dataset loader and preprocessing utilities
 use byteorder::{BigEndian, ReadBytesExt};
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::{self, BufReader, Read};
 use std::path::Path;
 
 /// Constants for MNIST dataset
@@ -45,27 +45,27 @@ impl MnistData {
         // Load training data
         data.train_images = read_idx_file(
             base_path.as_ref().join("train-images-idx3-ubyte"),
-            0x0803,
             MNIST_TRAIN_SIZE * MNIST_IMG_SIZE,
+            0x00000803,
         )?;
 
         data.train_labels = read_idx_file(
             base_path.as_ref().join("train-labels-idx1-ubyte"),
-            0x0801,
             MNIST_TRAIN_SIZE,
+            0x00000801,
         )?;
 
         // Load test data
         data.test_images = read_idx_file(
             base_path.as_ref().join("t10k-images-idx3-ubyte"),
-            0x0803,
             MNIST_TEST_SIZE * MNIST_IMG_SIZE,
+            0x00000803,
         )?;
 
         data.test_labels = read_idx_file(
             base_path.as_ref().join("t10k-labels-idx1-ubyte"),
-            0x0801,
             MNIST_TEST_SIZE,
+            0x00000801,
         )?;
 
         Ok(data)
@@ -96,38 +96,69 @@ impl MnistData {
     }
 }
 
-/// Helper function to read IDX file format
-fn read_idx_file<P: AsRef<Path>>(
-    path: P,
-    expected_magic: u32,
-    data_size: usize,
-) -> io::Result<Vec<f32>> {
-    let mut file = File::open(path)?;
+/// Read data from IDX file format
+fn inner_sread_idx_file<P: AsRef<Path>>(
+    filename: P,
+    data: &mut [u8],
+    size: usize,
+    magic_expected: u32,
+) -> io::Result<()> {
+    // Open file
+    let file = File::open(filename.as_ref())
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to open file: {}", e)))?;
 
-    // Read and verify magic number
-    let magic = file.read_u32::<BigEndian>()?;
-    if magic != expected_magic {
+    let mut reader = BufReader::new(file);
+
+    // Read magic number
+    let magic = reader.read_u32::<BigEndian>().map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to read magic number: {}", e),
+        )
+    })?;
+
+    if magic != magic_expected {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "Invalid magic number in IDX file",
+            format!(
+                "Invalid magic number (expected 0x{:08x}, got 0x{:08x})",
+                magic_expected, magic
+            ),
         ));
     }
 
-    // Read number of items
-    let _num_items = file.read_u32::<BigEndian>()? as usize;
+    // Read dimensions
+    let dim_count = if magic_expected == 0x00000803 { 3 } else { 1 };
+    let mut dimensions = vec![0u32; dim_count];
 
-    // For images, read dimensions
-    if expected_magic == 0x0803 {
-        let _rows = file.read_u32::<BigEndian>()?;
-        let _cols = file.read_u32::<BigEndian>()?;
+    for dim in dimensions.iter_mut() {
+        *dim = reader.read_u32::<BigEndian>().map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to read dimensions: {}", e),
+            )
+        })?;
     }
 
-    // Read data
-    let mut buffer = vec![0u8; data_size];
-    file.read_exact(&mut buffer)?;
+    // Read the actual data
+    reader
+        .read_exact(&mut data[..size])
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to read data: {}", e)))?;
 
-    // Convert to f32 and normalize to [0, 1]
-    Ok(buffer.into_iter().map(|x| (x as f32 / 255.0)).collect())
+    Ok(())
+}
+
+/// Helper function to read IDX file and return a Vec<f32>
+fn read_idx_file<P: AsRef<Path>>(
+    filename: P,
+    size: usize,
+    magic_expected: u32,
+) -> io::Result<Vec<f32>> {
+    let mut buffer = vec![0u8; size];
+    inner_sread_idx_file(filename, &mut buffer, size, magic_expected)?;
+
+    // Convert u8 to normalized f32
+    Ok(buffer.into_iter().map(|x| x as f32 / 255.0).collect())
 }
 
 /// Preprocess MNIST images (normalize, enhance contrast)
