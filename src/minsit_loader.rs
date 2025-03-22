@@ -88,11 +88,34 @@ impl MnistData {
 
     /// Print summary statistics of the dataset
     pub fn print_summary(&self) {
-        println!("MNIST Dataset Summary:");
+        println!("MNIST Dataset Summary");
+        println!("---------------------");
         println!("Training samples: {}", self.num_train);
         println!("Test samples: {}", self.num_test);
         println!("Image size: {} pixels", self.image_size);
         println!("Number of classes: {}", self.num_classes);
+
+        // Count samples per class in training set
+        let mut train_counts = [0; 10];
+        for &label in &self.train_labels {
+            train_counts[label as usize] += 1;
+        }
+
+        // Count samples per class in test set
+        let mut test_counts = [0; 10];
+        for &label in &self.test_labels {
+            test_counts[label as usize] += 1;
+        }
+
+        println!("\nClass distribution:");
+        println!("Digit   Training    Test");
+        for i in 0..10 {
+            println!("  {}     {:5}     {:4}", i, train_counts[i], test_counts[i]);
+        }
+
+        println!("\nSample digit:");
+        //self.display_sample_digit(0);
+        display_digit(&&self.train_images, self.train_labels[0] as u8);
     }
 }
 
