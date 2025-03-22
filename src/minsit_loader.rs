@@ -223,6 +223,6 @@ pub fn display_digit(image: &[f32], label: u8) {
 /// Shuffle a slice in place
 pub fn shuffle_slice<T>(slice: &mut [T]) {
     use rand::seq::SliceRandom;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     slice.shuffle(&mut rng);
 }
