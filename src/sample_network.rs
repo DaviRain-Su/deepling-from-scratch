@@ -60,7 +60,7 @@ impl Network {
 
     pub fn predict(&self, x: &[f32]) -> Array2<f32> {
         // 将输入转换为列向量 (784, 1)
-        let x = Array2::from_shape_vec((784, 1), x.to_vec()).unwrap();
+        let x = Array2::from_shape_vec((1, 784), x.to_vec()).unwrap();
         // 打印输入数据范围（调试用）
         if let (Some(&min), Some(&max)) = (
             x.iter().min_by(|a, b| a.partial_cmp(b).unwrap()),
@@ -70,18 +70,18 @@ impl Network {
         }
 
         // W1: (784, 50), x: (784, 1)
-        // 需要转置 W1 为 (50, 784) 进行运算
-        let a1 = self.w1.t().dot(&x) + &self.b1;
+        // X(784,1) * W1(784,50)
+        let a1 = x.dot(&self.w1) + &self.b1.t();
         let z1 = sigmoid2(a1);
 
-        // W2: (50, 100), z1: (50, 1)
-        // 需要转置 W2 为 (100, 50)
-        let a2 = self.w2.t().dot(&z1) + &self.b2;
+        // W2: (50, 100), z1: (1, 50)
+        //Z1(1,50) * W2(50,100)
+        let a2 = z1.dot(&self.w2) + &self.b2.t();
         let z2 = sigmoid2(a2);
 
-        // W3: (100, 10), z2: (100, 1)
-        // 需要转置 W3 为 (10, 100)
-        let a3 = self.w3.t().dot(&z2) + &self.b3;
+        // W3: (100, 10), z2: (1, 100)
+        // Z2(1,100) * W3(100,10)
+        let a3 = z2.dot(&self.w3) + &self.b3.t();
         softmax2(a3)
     }
 
