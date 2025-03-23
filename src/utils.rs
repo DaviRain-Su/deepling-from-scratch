@@ -97,6 +97,16 @@ pub fn argmax2(x: &Array2<f32>) -> usize {
         .unwrap()
 }
 
+pub fn mean_squared_error(x: &Array1<f32>, t: &Array1<f32>) -> f32 {
+    let diff = x - t;
+    diff.mapv(|element| element.powi(2)).sum() * 0.5
+}
+
+pub fn mean_squared_error2(x: &Array2<f32>, t: &Array2<f32>) -> f32 {
+    let diff = x - t;
+    diff.mapv(|element| element.powi(2)).sum() * 0.5
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -139,5 +149,23 @@ mod tests {
         let x2 = Array1::from(vec![0.0, 0.0, 1.0, 1.0]);
         let y = xor(x1.clone(), x2.clone());
         assert_eq!(y, Array1::from(vec![0.0, 1.0, 1.0, 0.0]));
+    }
+
+    #[test]
+    fn test_mean_squared_error1() {
+        let x = Array1::from(vec![0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0]);
+        let t = Array1::from(vec![0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let y = mean_squared_error(&x, &t);
+        dbg!(y);
+        assert_eq!(y, 0.0975);
+    }
+
+    #[test]
+    fn test_mean_squared_error2() {
+        let x = Array1::from(vec![0.1, 0.05, 0.1, 0.0, 0.05, 0.1, 0.0, 0.6, 0.0, 0.0]);
+        let t = Array1::from(vec![0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let y = mean_squared_error(&x, &t);
+        dbg!(y);
+        assert_eq!(y, 0.59749997);
     }
 }
