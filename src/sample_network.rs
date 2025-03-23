@@ -1,5 +1,5 @@
 use crate::utils::*;
-use ndarray::{Array1, Array2};
+use ndarray::Array2;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::BufReader;
