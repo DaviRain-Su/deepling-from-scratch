@@ -85,6 +85,19 @@ impl Network {
         softmax2(a3)
     }
 
+    pub fn predict_batch(&self, x: &Array2<f32>) -> Array2<f32> {
+        // x的形状为 (batch_size, 784)
+        let a1 = x.dot(&self.w1) + &self.b1.t();
+        let z1 = sigmoid2(a1);
+
+        let a2 = z1.dot(&self.w2) + &self.b2.t();
+        let z2 = sigmoid2(a2);
+
+        let a3 = z2.dot(&self.w3) + &self.b3.t();
+
+        softmax_batch(&a3)
+    }
+
     pub fn predict_class(&self, x: &[f32]) -> usize {
         let prediction = self.predict(x);
 

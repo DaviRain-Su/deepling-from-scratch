@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use ndarray::{Array1, Array2, s};
 mod mnsit_loader;
 use crate::mnsit_loader::*;
 mod sample_network;
@@ -31,43 +32,86 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 评估模型
     println!("\nEvaluating model...");
+    let batch_size = 100;
     let mut accuracy_cnt = 0;
 
-    // 测试前几个样本并打印详细信息
-    for i in 0..10 {
-        let start_idx = i * mnist.image_size;
-        let end_idx = start_idx + mnist.image_size;
-        let image = &mnist.test_images[start_idx..end_idx];
-        let label = mnist.test_labels[i];
+    // 计算总批次数
+    let num_batches = mnist.num_test / batch_size;
 
-        let predicted_class = network.predict_class(image);
-        println!(
-            "Sample {}: True label = {}, Predicted = {}",
-            i, label, predicted_class
-        );
+    // 按批次处理数据
+    for batch_idx in 0..num_batches {
+        // 创建一个存储整个批次数据的矩阵 (batch_size, 784)
+        let mut batch_data = Array2::zeros((batch_size, 784));
+        let batch_start = batch_idx * batch_size;
 
-        if predicted_class == label as usize {
-            accuracy_cnt += 1;
+        // 填充批次数据
+        for i in 0..batch_size {
+            let img_idx = batch_start + i;
+            let img_start = img_idx * mnist.image_size;
+            let img_end = img_start + mnist.image_size;
+
+            // 将图像数据复制到批次矩阵中
+            let image_slice = &mnist.test_images[img_start..img_end];
+            batch_data
+                .slice_mut(s![i, ..])
+                .assign(&Array1::from_vec(image_slice.to_vec()));
         }
+
+        // 对整个批次进行预测
+        let predictions = network.predict_batch(&batch_data);
+
+        // 处理预测结果
+        for i in 0..batch_size {
+            let img_idx = batch_start + i;
+
+            // 获取预测类别（找到概率最大的索引）
+            let predicted_class = predictions
+                .slice(s![i, ..])
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+                .map(|(idx, _)| idx)
+                .unwrap();
+
+            // 检查预测是否正确
+            if predicted_class == mnist.test_labels[img_idx] as usize {
+                accuracy_cnt += 1;
+            }
+        }
+
+        println!("Processing batch {}/{}", batch_idx + 1, num_batches);
     }
 
-    // 遍历每个测试样本
-    for i in 10..mnist.num_test {
-        // 获取单个图像的切片（784个像素）
-        let start_idx = i * mnist.image_size;
-        let end_idx = start_idx + mnist.image_size;
-        let image = &mnist.test_images[start_idx..end_idx];
-        let label = mnist.test_labels[i];
+    // 处理剩余的样本（如果有的话）
+    let remaining = mnist.num_test % batch_size;
+    if remaining > 0 {
+        let mut batch_data = Array2::zeros((remaining, 784));
+        let start_idx = (mnist.num_test - remaining) * mnist.image_size;
 
-        // 预测
-        let predicted_class = network.predict_class(image);
-        if predicted_class == label as usize {
-            accuracy_cnt += 1;
+        for i in 0..remaining {
+            let img_start = start_idx + i * mnist.image_size;
+            let img_end = img_start + mnist.image_size;
+            let image_slice = &mnist.test_images[img_start..img_end];
+            batch_data
+                .slice_mut(s![i, ..])
+                .assign(&Array1::from_vec(image_slice.to_vec()));
         }
 
-        // 显示进度
-        if (i + 1) % 100 == 0 {
-            println!("Processing {}/{}", i + 1, mnist.num_test);
+        let predictions = network.predict_batch(&batch_data);
+
+        for i in 0..remaining {
+            let img_idx = mnist.num_test - remaining + i;
+            let predicted_class = predictions
+                .slice(s![i, ..])
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+                .map(|(idx, _)| idx)
+                .unwrap();
+
+            if predicted_class == mnist.test_labels[img_idx] as usize {
+                accuracy_cnt += 1;
+            }
         }
     }
 

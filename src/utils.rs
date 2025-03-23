@@ -61,6 +61,21 @@ pub fn softmax2(x: Array2<f32>) -> Array2<f32> {
     exp_x.map(|&v| v / sum_exp)
 }
 
+// 批处理版本的softmax函数
+pub fn softmax_batch(x: &Array2<f32>) -> Array2<f32> {
+    let mut result = x.clone();
+
+    // 对每一行（每个样本）分别计算softmax
+    for mut row in result.rows_mut() {
+        let max_val = row.fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+        let exp_x: Array1<f32> = row.map(|&v| ((v - max_val) as f64).exp() as f32);
+        let sum_exp = exp_x.sum();
+        row.assign(&exp_x.map(|&v| v / sum_exp));
+    }
+
+    result
+}
+
 // relu function (Rectified linear function)
 pub fn relu(x: Array1<f32>) -> Array1<f32> {
     x.mapv(|element| if element > 0.0 { element } else { 0.0 })
