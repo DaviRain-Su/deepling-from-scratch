@@ -1,4 +1,5 @@
-use ndarray::Array1;
+use ndarray::Axis;
+use ndarray::{Array1, Array2};
 
 // x1*w1 + x2*w2 <> b
 // x1*w1 + x2*w2 - b <> 0
@@ -33,19 +34,52 @@ pub fn xor(x1: Array1<f64>, x2: Array1<f64>) -> Array1<f64> {
     and(s1, s2)
 }
 
-pub fn step_function(x: Array1<f64>) -> Array1<f64> {
+pub fn step_function(x: Array1<f32>) -> Array1<f32> {
     // y = x > 0
     x.mapv(|x| if x > 0.0 { 1.0 } else { 0.0 })
 }
 
-// sigmoid function
-pub fn sigmoid(x: Array1<f64>) -> Array1<f64> {
+pub fn sigmoid(x: Array1<f32>) -> Array1<f32> {
     x.mapv(|element| 1.0 / (1.0 + (-element).exp()))
 }
 
+// sigmoid function
+pub fn sigmoid2(x: Array2<f32>) -> Array2<f32> {
+    x.mapv(|element| 1.0 / (1.0 + (-element).exp()))
+}
+
+pub fn softmax(x: Array1<f32>) -> Array1<f32> {
+    let exp_x = x.mapv(|element| element.exp());
+    let sum_exp_x = exp_x.sum_axis(Axis(1));
+    exp_x / sum_exp_x
+}
+
+pub fn softmax2(x: Array2<f32>) -> Array2<f32> {
+    let max_val = x.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+    let exp_x = x.map(|&v| ((v - max_val) as f64).exp() as f32);
+    let sum_exp = exp_x.sum();
+    exp_x.map(|&v| v / sum_exp)
+}
+
 // relu function (Rectified linear function)
-pub fn relu(x: Array1<f64>) -> Array1<f64> {
+pub fn relu(x: Array1<f32>) -> Array1<f32> {
     x.mapv(|element| if element > 0.0 { element } else { 0.0 })
+}
+
+pub fn argmax(x: &Array1<f32>) -> usize {
+    x.iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(i, _)| i)
+        .unwrap()
+}
+
+pub fn argmax2(x: &Array2<f32>) -> usize {
+    x.iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(i, _)| i)
+        .unwrap()
 }
 
 #[cfg(test)]
